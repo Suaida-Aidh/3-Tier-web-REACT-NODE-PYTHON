@@ -57,7 +57,7 @@ const List = () => {
         try {
             const response = await axios.post('http://localhost:3001/api/movies', newMovie);
             console.log('Movie added:', response.data); // Log added movie
-            setMovies(prevMovies => [...prevMovies, response.data]);
+            // setMovies(prevMovies => [...prevMovies, response.data]);
             setNewMovie({ title: '', year: '' });
         } catch (error) {
             console.error('Error adding movie:', error);
@@ -73,10 +73,12 @@ const List = () => {
         console.log("Deleting movie with ID:", id); // Log ID before deleting
     
         try {
-            await axios.delete(`http://localhost:3001/api/movies/${id}`);
+            const response = await axios.delete(`http://localhost:3001/api/movies/${id}`, newMovie);
             // if (response.status === 404) {
             //     console.log('Movie not found on server');
             setMovies(prevMovies => prevMovies.filter(movie => movie.id !== id));
+            setMovies(prevMovies => [...prevMovies, response.data]);
+
             // fetchMovies()
                 // return;
             // }

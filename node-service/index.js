@@ -46,13 +46,29 @@ app.post('/api/movies', async (req, res) => {
     }
 });
 
-
+// app.delete('/api/movies/:id', async (req, res, next) => {
+//     const id = req.params.id
+//     try {
+//         const response = await axios.delete(`http://localhost:8000/movies/${req.params.id}`);
+//         wsServer.clients.forEach(client => {
+//             if (client.readyState === WebSocket.OPEN) {
+//                 client.send(JSON.stringify({ type: 'movie_deleted', data: response.data }));
+//             }
+//         });
+//         res.json(response.data);
+//     } catch (error) {
+//         console.error("Error in Node.js server delete:", error);
+//         res.status(500).json({ error: 'Failed to delete movie' });
+//     }
+// });
 
 app.delete('/api/movies/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
         console.log(`Attempting to delete movie with ID: ${id}`);
+        console.log(`Request URL: http://localhost:8000/movies/${id}`);
+
         const response = await axios.delete(`http://localhost:8000/movies/${id}`);
         
         if (response.status === 404) {
@@ -71,6 +87,7 @@ app.delete('/api/movies/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete movie' });
     }
 });
+
 
 
 

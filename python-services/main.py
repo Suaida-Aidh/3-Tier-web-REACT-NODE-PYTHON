@@ -65,8 +65,11 @@ async def create_movie(movie: MovieCreate):
 @app.delete("/movies/{id}")
 async def delete_movie(id: int):
     print(f"Attempting to delete movie with ID: {id}")
-    query = movies_table.delete().where(movies_table.c.id == id)
+    query = movies_table.delete().where(movies_table.c.id == id).returning(movies_table.c.id)
     result = await database.execute(query)
+    print('DATA IS ',result)
+
+    
     
     if result:
         print(f"Movie with ID {id} deleted from database")
@@ -74,7 +77,7 @@ async def delete_movie(id: int):
         return {"message": "Movie deleted successfully", "id": id}
     else:
         print(f"Movie with ID {id} not found")
-        raise HTTPException(status_code=404, detail="Movie not found")
+        raise HTTPException(status_code=501, detail="Movie not found")
     
 
 @app.put("/movies/{id}", response_model=Movie)
