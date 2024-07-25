@@ -26,15 +26,16 @@ const List = () => {
         };
     }, []);
 
-
     const fetchMovies = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/movies');
+            console.log('Fetched movies:', response.data); // Log fetched movies
             setMovies(response.data);
         } catch (error) {
             console.error('Error fetching movies:', error);
         }
     };
+    
 
     const handleButtonClick = () => {
         setIsModalOpen(true);
@@ -46,44 +47,42 @@ const List = () => {
         setNewMovie({ title: '', year: '' });
     };
 
-    
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewMovie({ ...newMovie, [name]: value });
     };
 
-    // const handleAddMovie = async () => {
-    //     try {
-    //         await axios.post('http://localhost:3001/api/movies', newMovie);
-    //         setNewMovie({ title: '', year: '' });
-    //         fetchMovies();  // Refresh the movie list after adding a new movie
-    //     } catch (error) {
-    //         console.error('Error adding movie:', error);
-    //     }
-    // };
-
-    const handleAddMovie = async () =>{
-        
-        try{
-            const response = await axios.post('http://localhost:3001/api/movies',newMovie)
-            console.log('Movie added', response.data)
-            setNewMovie({ title: '', year: ''})
-        }catch (error){
+    const handleAddMovie = async () => {
+        try {
+            const response = await axios.post('http://localhost:3001/api/movies', newMovie);
+            console.log('Movie added:', response.data); // Log added movie
+            setMovies(prevMovies => [...prevMovies, response.data]);
+            setNewMovie({ title: '', year: '' });
+        } catch (error) {
             console.error('Error adding movie:', error);
         }
-    }
+    };
+    
 
     const handleDeleteMovie = async (id) => {
         if (!id) {
             console.error("Movie ID is missing");
             return;
         }
+        console.log("Deleting movie with ID:", id); // Log ID before deleting
+    
         try {
-            await axios.delete(`http://localhost:3001/api/movies/${id}`);
+            const response = await axios.delete(`http://localhost:3001/api/movies/${id}`);
+            if (response.status === 404) {
+                console.log('Movie not found on server');
+                return;
+            }
+            setMovies(prevMovies => prevMovies.filter(movie => movie.id !== id));
         } catch (error) {
             console.error("Error deleting movie:", error);
         }
     };
+    
 
     const handleEditMovie = (movie) => {
         setEditMovie(movie);
@@ -105,8 +104,6 @@ const List = () => {
         }
     };
 
-    // const handleCancelEdit = ()
-
     return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
             <button onClick={handleButtonClick}>Show Movies</button>
@@ -117,15 +114,10 @@ const List = () => {
                     <ul>
                         {movies.map((movie, index) => (
                             <li key={index}>
-                                {index}
-
-                                {movie.title} ({movie.year})
+                                {movie.title} ({movie.year}) ID: {movie.id}
                                 <button onClick={() => handleEditMovie(movie)}>Edit</button>
-                                {/* <button onClick={() => handleDeleteMovie(movie.id)}>Delete</button> */}
-                                <button onClick={() => {
-                                    console.log("Deleting movie with ID:", movie.id); // Debugging line
-                                        handleDeleteMovie(index);
-                                    }}>Delete</button>
+                                <button onClick={() => handleDeleteMovie(movie.id)}>Delete</button>
+
                             </li>
                         ))}
                     </ul>
@@ -146,7 +138,6 @@ const List = () => {
                     {editMovie ? (
                         <>
                             <button onClick={handleUpdateMovie}>Update</button>
-                            {/* <button onClick={handleCancelEdit}>Cancel Edit</button> */}
                         </>
                     ) : (
                         <button onClick={handleAddMovie}>Add</button>

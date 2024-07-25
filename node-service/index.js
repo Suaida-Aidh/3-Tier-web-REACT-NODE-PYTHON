@@ -25,6 +25,7 @@ wsServer.on('connection', (socket) => {
 app.get('/api/movies', async (req, res) => {
     try {
         const response = await axios.get('http://localhost:8000/movies');
+        console.log(response.data)
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch movies' });
@@ -45,9 +46,34 @@ app.post('/api/movies', async (req, res) => {
     }
 });
 
+// app.delete('/api/movies/:id', async (req, res, next) => {
+//     const id = req.params.id
+//     try {
+//         const response = await axios.delete(`http://localhost:8000/movies/${req.params.id}`);
+//         wsServer.clients.forEach(client => {
+//             if (client.readyState === WebSocket.OPEN) {
+//                 client.send(JSON.stringify({ type: 'movie_deleted', data: response.data }));
+//             }
+//         });
+//         res.json(response.data);
+//     } catch (error) {
+//         console.error("Error in Node.js server delete:", error);
+//         res.status(500).json({ error: 'Failed to delete movie' });
+//     }
+// });
+
 app.delete('/api/movies/:id', async (req, res) => {
+    const { id } = req.params;
+
     try {
-        const response = await axios.delete(`http://localhost:8000/movies/${req.params.id}`);
+        console.log(`Attempting to delete movie with ID: ${id}`);
+        const response = await axios.delete(`http://localhost:8000/movies/${id}`);
+        
+        if (response.status === 404) {
+            console.log('Movie not found');
+            return res.status(404).json({ error: 'Movie not found' });
+        }
+
         wsServer.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ type: 'movie_deleted', data: response.data }));
@@ -59,6 +85,9 @@ app.delete('/api/movies/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete movie' });
     }
 });
+
+
+
 
 app.put('/api/movies/:id', async (req, res) => {
     try {
