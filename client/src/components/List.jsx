@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import Button from 'react-bootstrap/Button';
+import './List.css'
+
 
 const List = () => {
     const [movies, setMovies] = useState([]);
@@ -12,7 +17,6 @@ const List = () => {
         const ws = new WebSocket('ws://localhost:3002/ws');
         ws.onmessage = (event) => {
             const { type, data } = JSON.parse(event.data);
-            console.log('WebSocket message received:', type, data);
             if (type === 'movie_created') {
                 setMovies(prevMovies => [...prevMovies, data]);
             } else if (type === 'movie_deleted') {
@@ -30,13 +34,11 @@ const List = () => {
     const fetchMovies = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/movies');
-            console.log('Fetched movies:', response.data); // Log fetched movies
             setMovies(response.data);
         } catch (error) {
             console.error('Error fetching movies:', error);
         }
     };
-    
 
     const handleButtonClick = () => {
         setIsModalOpen(true);
@@ -55,40 +57,26 @@ const List = () => {
 
     const handleAddMovie = async () => {
         try {
-            const response = await axios.post('http://localhost:3001/api/movies', newMovie);
-            console.log('Movie added:', response.data); // Log added movie
-            // setMovies(prevMovies => [...prevMovies, response.data]);
+            await axios.post('http://localhost:3001/api/movies', newMovie);
             setNewMovie({ title: '', year: '' });
         } catch (error) {
             console.error('Error adding movie:', error);
         }
     };
     
-
     const handleDeleteMovie = async (id) => {
         if (!id) {
             console.error("Movie ID is missing");
             return;
         }
-        console.log("Deleting movie with ID:", id); // Log ID before deleting
-    
         try {
-            const response = await axios.delete(`http://localhost:3001/api/movies/${id}`, newMovie);
-            // if (response.status === 404) {
-            //     console.log('Movie not found on server');
+            await axios.delete(`http://localhost:3001/api/movies/${id}`, newMovie);
             setMovies(prevMovies => prevMovies.filter(movie => movie.id !== id));
-            setMovies(prevMovies => [...prevMovies, response.data]);
-
-            // fetchMovies()
-                // return;
-            // }
-            
         } catch (error) {
             console.error("Error deleting movie:", error);
         }
     };
     
-
     const handleEditMovie = (movie) => {
         setEditMovie(movie);
         setNewMovie({ title: movie.title, year: movie.year });
@@ -102,32 +90,43 @@ const List = () => {
         }
         try {
             const response = await axios.put(`http://localhost:3001/api/movies/${editMovie.id}`, newMovie);
-            console.log('Movie updated:', response.data); // Log updated movie
+            setMovies(prevMovies => prevMovies.map(movie => movie.id === editMovie.id ? response.data : movie));
             setEditMovie(null);
             setNewMovie({ title: '', year: '' });
         } catch (error) {
             console.error('Error updating movie:', error);
         }
     };
+
+    const handleCloseEdit = () => {
+        setEditMovie(null);
+        setNewMovie({ title: '', year: '' });
+    };
     
     return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <button onClick={handleButtonClick}>Show Movies</button>
+            
+            <Button variant="dark" onClick={handleButtonClick}>Show Movies</Button>
+
             {isModalOpen && (
-                <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'white', padding: '20px', border: '1px solid black' }}>
-                    <button onClick={closeModal}>x</button>
+                <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'white', padding: '40px', border: '1px solid black' }} >
+                    <Button variant='dark' className="close-button" onClick={closeModal}>x</Button>
                     <h2>Movie List</h2>
                     <ul>
                         {movies.map((movie, index) => (
                             <li key={index}>
-                                {movie.title} ({movie.year}) ID: {movie.id}
-                                <button onClick={() => handleEditMovie(movie)}>Edit</button>
-                                <button onClick={() => handleDeleteMovie(movie.id)}>Delete</button>
+                                 
+                                
+                                 {movie.title} ({movie.year}) 
+                                <i onClick={() => handleEditMovie(movie)}><FontAwesomeIcon icon={faEdit} /></i>
+                                <i onClick={() => handleDeleteMovie(movie.id)}>                                    <FontAwesomeIcon icon={faTrash} />
+                                </i>
 
                             </li>
                         ))}
                     </ul>
                     <input
+                        className="movie-input"
                         type="text"
                         name="title"
                         placeholder="Movie Title"
@@ -144,9 +143,12 @@ const List = () => {
                     {editMovie ? (
                         <>
                             <button onClick={handleUpdateMovie}>Update</button>
+                            <Button className='close-button-update' variant='dark' onClick={handleCloseEdit}>x</Button>
+
                         </>
                     ) : (
                         <button onClick={handleAddMovie}>Add</button>
+
                     )}
                 </div>
             )}
