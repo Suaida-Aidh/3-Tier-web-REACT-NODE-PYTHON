@@ -8,10 +8,11 @@ const List = () => {
     const [editMovie, setEditMovie] = useState(null);
 
     useEffect(() => {
-        fetchMovies();
+        fetchMovies()
         const ws = new WebSocket('ws://localhost:3002/ws');
         ws.onmessage = (event) => {
             const { type, data } = JSON.parse(event.data);
+            console.log('WebSocket message received:', type, data);
             if (type === 'movie_created') {
                 setMovies(prevMovies => [...prevMovies, data]);
             } else if (type === 'movie_deleted') {
@@ -72,12 +73,14 @@ const List = () => {
         console.log("Deleting movie with ID:", id); // Log ID before deleting
     
         try {
-            const response = await axios.delete(`http://localhost:3001/api/movies/${id}`);
-            if (response.status === 404) {
-                console.log('Movie not found on server');
-                return;
-            }
+            await axios.delete(`http://localhost:3001/api/movies/${id}`);
+            // if (response.status === 404) {
+            //     console.log('Movie not found on server');
             setMovies(prevMovies => prevMovies.filter(movie => movie.id !== id));
+            // fetchMovies()
+                // return;
+            // }
+            
         } catch (error) {
             console.error("Error deleting movie:", error);
         }
@@ -96,14 +99,15 @@ const List = () => {
             return;
         }
         try {
-            await axios.put(`http://localhost:3001/api/movies/${editMovie.id}`, newMovie);
+            const response = await axios.put(`http://localhost:3001/api/movies/${editMovie.id}`, newMovie);
+            console.log('Movie updated:', response.data); // Log updated movie
             setEditMovie(null);
             setNewMovie({ title: '', year: '' });
         } catch (error) {
             console.error('Error updating movie:', error);
         }
     };
-
+    
     return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
             <button onClick={handleButtonClick}>Show Movies</button>

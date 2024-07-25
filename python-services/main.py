@@ -32,6 +32,10 @@ class Movie(BaseModel):
     title: str
     year: int
 
+class MovieCreate(BaseModel):
+    title: str
+    year: int
+
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
@@ -49,13 +53,42 @@ async def get_movies():
     return [{"id": movie["id"], "title": movie["title"], "year": movie["year"]} for movie in movies]
 
 @app.post("/movies", response_model=Movie)
-async def create_movie(movie: Movie):
+async def create_movie(movie: MovieCreate):
     query = movies_table.insert().values(title=movie.title, year=movie.year).returning(movies_table.c.id)
     last_record_id = await database.execute(query)
     movie_data = {**movie.dict(), "id": last_record_id}
     await notify_websockets({"type": "movie_created", "data": movie_data})
 
     return movie_data
+
+
+@app.delete("/movies/{id}")
+async def delete_movie(id: int):
+    print(f"Attempting to delete movie with ID: {id}")
+    query = movies_table.delete().where(movies_table.c.id == id)
+    result = await database.execute(query)
+    
+    if result:
+        print(f"Movie with ID {id} deleted from database")
+        await notify_websockets({"type": "movie_deleted", "data": {"id": id}})
+        return {"message": "Movie deleted successfully", "id": id}
+    else:
+        print(f"Movie with ID {id} not found")
+        raise HTTPException(status_code=404, detail="Movie not found")
+    
+
+@app.put("/movies/{id}", response_model=Movie)
+async def update_movie(id: int, movie: MovieCreate):
+    query = movies_table.update().where(movies_table.c.id == id).values(title=movie.title, year=movie.year)
+    result = await database.execute(query)
+    if result:
+        updated_movie = {**movie.dict(), "id": id}
+        await notify_websockets({"type": "movie_updated", "data": updated_movie})
+        return updated_movie
+    else:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -67,16 +100,13 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         websocket_connections.remove(websocket)
 
+
 async def notify_websockets(message: dict):
     for connection in websocket_connections:
-        await connection.send_json(message)
+        try:
+            await connection.send_json(message)
+        except Exception as e:
+            print(f"Error sending WebSocket message: {e}")
 
-@app.delete("/movies/{id}")
-async def delete_movie(id: int):
-    query = movies_table.delete().where(movies_table.c.id == id)
-    result = await database.execute(query)
-    if result:
-        await notify_websockets({"type": "movie_deleted", "data": {"id": id}})
-        return {"message": "Movie deleted successfully", "id": id}
-    else:
-        raise HTTPException(status_code=404, detail="Movie not found")
+
+
